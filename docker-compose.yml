@@ -1,10 +1,12 @@
-version: '2.1'
+version: '3'
 services:
   php:
     hostname: php
-    build: ./php
+    restart: always
+    build:
+      context: ./php
     depends_on:
-      - db
+      - mysql_database_host
     volumes:
       - "./php/conf.d/00-ioncube.ini:/usr/local/etc/php/conf.d/00-ioncube.ini"
       - "./php/conf.d/99-custom.ini:/usr/local/etc/php/conf.d/99-custom.ini"
@@ -15,31 +17,37 @@ services:
       - "./php/home/.git-completion.bash:/root/.git-completion.bash"
       - "./php/home/.git-prompt.sh:/root/.git-prompt.sh"
       - "./php/home/.vimrc:/root/.vimrc"
-      - "./htdocs:/var/www/html"
+      - "${APPLICATION_PATH}:/var/www/html"
     ports:
       - "8080:80"
-  db:
-    image: mysql:5.6
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
-      MYSQL_DATABASE: database
+      - MYSQL_BYPASS_HOSTNAME=mysql_database_host
+
+  mysql_database_host:
+    image: mysql:5.6
+
     volumes:
       - ./mysql/conf.d/custom.cnf:/etc/mysql/conf.d/custom.cnf
+      - ./mysql/sql-scripts/init-database.sql:/docker-entrypoint-initdb.d/000.sql
       - ./mysql/data:/var/lib/mysql:rw
     ports:
-      - "8181:3306"
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_USER_PASSWORD}
+      - MYSQL_DATABASE=docker_db
+
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     depends_on:
-      - db
+      - mysql_database_host
     environment:
       - PMA_ARBITRARY=1
-      - PMA_HOSTS=db
+      - PMA_HOSTS=mysql_database_host
       - PMA_USER=root
-      - PMA_PASSWORD=root
+      - PMA_PASSWORD=${MYSQL_ROOT_PASSWORD}
     ports:
-     - 8282:80
+      - "8081:80"
     volumes:
-     - ./phpmyadmin/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php
+      - ./phpmyadmin/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php
