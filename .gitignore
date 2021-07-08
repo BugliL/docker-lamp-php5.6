@@ -1,4 +1,5 @@
 .idea/
 mysql/data
-.env
+.env-*
+.env_*
 *.sql

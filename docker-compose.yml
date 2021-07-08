@@ -1,7 +1,7 @@
 version: '3'
 services:
   php:
-    hostname: php
+    container_name: ${APPLICATION_NAME}_php
     restart: always
     build:
       context: ./php
@@ -19,19 +19,20 @@ services:
       - "./php/home/.vimrc:/root/.vimrc"
       - "${APPLICATION_PATH}:/var/www/html"
     ports:
-      - "8080:80"
+      - "${APACHE_PORT}:80"
     environment:
       - MYSQL_BYPASS_HOSTNAME=mysql_database_host
 
   mysql_database_host:
     image: mysql:5.6
+    container_name: ${APPLICATION_NAME}_mysql
 
     volumes:
       - ./mysql/conf.d/custom.cnf:/etc/mysql/conf.d/custom.cnf
-      - ./mysql/sql-scripts/init-database.sql:/docker-entrypoint-initdb.d/000.sql
-      - ./mysql/data:/var/lib/mysql:rw
+      - ${MYSQL_INIT_FOLDER}:/docker-entrypoint-initdb.d/
+      - ./mysql/data-${APPLICATION_NAME}:/var/lib/mysql:rw
     ports:
-      - "3307:3306"
+      - "${MYSQL_PORT}:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_USER=${MYSQL_USER}
@@ -40,6 +41,7 @@ services:
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
+    container_name: ${APPLICATION_NAME}_phpmyadmin
     depends_on:
       - mysql_database_host
     environment:
@@ -48,6 +50,4 @@ services:
       - PMA_USER=root
       - PMA_PASSWORD=${MYSQL_ROOT_PASSWORD}
     ports:
-      - "8081:80"
-    volumes:
-      - ./phpmyadmin/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php
+      - "PHPMYADMIN_PORT:80"
